@@ -1,25 +1,29 @@
-# Event Flow
-Event Flow helps you to create event driven applications with Laravel.
+# Send parcels using the Sendcloud Shipping API
 
-The Event flow package consists of two parts: a publisher and a subscriber. Publishers publish events that happen within the publishing application. Subscribers listen to events that happened and process them.
+[![tests](https://github.com/sander3/laravel-sendcloud/workflows/Laravel/badge.svg)](https://github.com/sander3/laravel-sendcloud/actions?query=workflow%3ALaravel)
 
-## Prerequisites
-1. This package needs to installed and configured in the publishing and subscribing Laravel applications.
-2. At least one AWS SQS Queue - one queue per Laravel application subscribing
-3. At least one AWS EventBridge Event Bus and AWS SNS Topic
-4. An EventBridge rule that sends events from your Event Bus to your SNS Topic
-5. An SQS subscription between your SNS Topic and your SQS Queue with "raw message delivery" disabled
-6. The relevant Access policies configured, especially if you want to be able to publish messages directly from the AWS Console.
+## Requirements
 
-## Installation
-This package is compatible with Laravel 9+. You can install the package via composer:
+- PHP >= 8.0
+- Laravel >= 8.0
 
+## Webhooks
+You can setup webhooks by registering the route in the `RouteServiceProvider` just below the route groups that pull in the `routes/api` and `routes/web` files:
 ```
-composer require "morscate/laravel-event-flow"
+$this->routes(function () {
+    // ...
+    Route::sendcloudWebhooks();
+});
+```
+This gives you a new endpoint in your application: `sendcloud/webhooks`. All webhooks sent to this endpoint will trigger an event, which you can listen to in your `EventServiceProvider`:
+```
+protected $listen = [
+    'sendcloud_webhook.parcel_status_changed' => [
+        UpdateParcelStatusFromWebhook::class,
+    ],
+];
 ```
 
-## Publish
-To
+## Security Vulnerabilities
 
-## Subscribe
-To
+If you discover a security vulnerability within this project, please send an e-mail to Sander de Vos via [sander@tutanota.de](mailto:sander@tutanota.de). All security vulnerabilities will be promptly addressed.

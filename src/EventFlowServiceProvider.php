@@ -8,8 +8,9 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Queue\QueueManager;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
+use Morscate\LaravelEventFlow\Publishers\Broadcasters\CustomEventBroadcaster;
 use Morscate\LaravelEventFlow\Publishers\Broadcasters\EventBridgeBroadcaster;
-use Morscate\LaravelEventFlow\Subscribers\Handlers\LambdaSqsHandler;
+use Morscate\LaravelEventFlow\Subscribers\Handlers\SqsSnsHandler;
 use Morscate\LaravelEventFlow\Subscribers\Queue\Connectors\SqsSnsConnector;
 
 class EventFlowServiceProvider extends ServiceProvider
@@ -25,7 +26,7 @@ class EventFlowServiceProvider extends ServiceProvider
     public function register(): void
     {
         // @todo add config to determine if it will run on Lambda or we can just use the SqsSnsQueue
-        $this->app->when(LambdaSqsHandler::class)
+        $this->app->when(SqsSnsHandler::class)
             ->needs('$connection')
             ->giveConfig('queue.default');
 
@@ -36,6 +37,8 @@ class EventFlowServiceProvider extends ServiceProvider
 //        $this->registerSqsSnsQueueConnector();
 
         $this->registerEventBridgeBroadcaster();
+
+        $this->registerCustomEventBroadcaster();
     }
 
     /**
@@ -76,8 +79,20 @@ class EventFlowServiceProvider extends ServiceProvider
     protected function registerEventBridgeBroadcaster(): void
     {
         $this->app->resolving(BroadcastManager::class, function (BroadcastManager $manager) {
-            $manager->extend('eventflow', function (Container $app, array $config) {
+            $manager->extend('eventflow-eventbridge', function (Container $app, array $config) {
                 return $this->createEventBridgeDriver($config);
+            });
+        });
+    }
+
+    /**
+     * Register the EventBridge broadcaster for the Broadcast components.
+     */
+    protected function registerCustomEventBroadcaster(): void
+    {
+        $this->app->resolving(BroadcastManager::class, function (BroadcastManager $manager) {
+            $manager->extend('eventflow-custom', function (Container $app, array $config) {
+                return $this->createCustomEventDriver($config);
             });
         });
     }
@@ -90,6 +105,16 @@ class EventFlowServiceProvider extends ServiceProvider
         $config = self::prepareConfigurationCredentials($config);
 
         return new EventBridgeBroadcaster(new EventBridgeClient(array_merge($config, ['version' => '2015-10-07'])));
+    }
+
+    /**
+     * Create an instance of the EventBridge driver for broadcasting.
+     */
+    public function createCustomEventDriver(array $config): CustomEventBroadcaster
+    {
+//        $config = self::prepareConfigurationCredentials($config);
+
+        return new CustomEventBroadcaster();
     }
 
     /**
