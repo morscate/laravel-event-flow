@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Morscate\LaravelEventFlow\Publishers\Broadcasters;
 
 use App\Services\EventBridge\EventIngressClient;
-use Aws\EventBridge\EventBridgeClient;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -17,7 +16,7 @@ use Illuminate\Support\Str;
  */
 class CustomEventBroadcaster extends Broadcaster
 {
-//    protected EventBridgeClient $eventBridgeClient;
+    protected $client;
 
     protected ?string $source;
 
@@ -26,7 +25,7 @@ class CustomEventBroadcaster extends Broadcaster
 //    public function __construct(EventBridgeClient $eventBridgeClient)
     public function __construct()
     {
-//        $this->eventBridgeClient = $eventBridgeClient;
+        $this->client = config('event-flow.client') ?? EventIngressClient::class;
 
         $this->source = config('event-flow.event_source');
 
@@ -57,19 +56,13 @@ class CustomEventBroadcaster extends Broadcaster
         $entries = $this->mapToEventBridgeEntries($channels, $event, $payload);
 
         $entries->each(function (array $entry) {
-            app(EventIngressClient::class)->putEvent(
-                $entry['Detail'],
+            app($this->client)->putEvent(
+                $entry['Detail']['data'],
                 $entry['DetailType'],
+                $entry['Source'],
                 $entry['EventBusName'],
-                $entry['Source']
             );
         });
-
-//        app(EventIngressClient::class)->putEvents($detail, $detailType, $eventBusName, $source);
-
-//        $this->eventBridgeClient->putEvents([
-//            'Entries' => $events,
-//        ]);
     }
 
     protected function mapToEventBridgeEntries(array $channels, string $event, array $payload): Collection
@@ -95,13 +88,11 @@ class CustomEventBroadcaster extends Broadcaster
             'metadata' => $this->getEventMetadata($event),
         ];
 
-        dd($eventDetail);
-
         return [
             'Detail' => $eventDetail,
             'DetailType' => $event,
-            'EventBusName' => $channel,
             'Source' => $this->source ?? '',
+            'EventBusName' => $channel,
         ];
     }
 
@@ -112,11 +103,11 @@ class CustomEventBroadcaster extends Broadcaster
      * 2. A resource named by model name, e.g. OrderEventResource.
      * 3. The model itself.
      *
-     * @todo add resource event in model itself
+     * @todo add resource defined in event
      * @todo add resource defined in model itself
      * @todo test with multi word model and event names
      */
-    protected function transformEventData(string $eventName, $model)
+    protected function transformEventData(string $eventName, Model $model)
     {
         $eventResource = 'App\Events\Resources\\'.Str::studly(Str::of($eventName)->explode('.')->implode('_')).'EventResource';
 
