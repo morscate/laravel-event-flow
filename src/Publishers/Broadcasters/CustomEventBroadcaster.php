@@ -8,11 +8,10 @@ use App\Services\EventBridge\EventIngressClient;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * @todo add different serializations to change the
+ * @todo add different serializations to change the one use now is AWS event serialization
  */
 class CustomEventBroadcaster extends Broadcaster
 {
@@ -22,7 +21,6 @@ class CustomEventBroadcaster extends Broadcaster
 
     protected ?string $domain;
 
-//    public function __construct(EventBridgeClient $eventBridgeClient)
     public function __construct()
     {
         $this->client = config('event-flow.client') ?? EventIngressClient::class;
@@ -53,47 +51,26 @@ class CustomEventBroadcaster extends Broadcaster
      */
     public function broadcast(array $channels, $event, array $payload = [])
     {
-        $entries = $this->mapToEventBridgeEntries($channels, $event, $payload);
+        collect($channels)
+            ->each(function ($channel) use ($event, $payload) {
+                // Remove the socket from the payload if it's there.
+                Arr::forget($payload, 'socket');
 
-        $entries->each(function (array $entry) {
-            app($this->client)->putEvent(
-                $entry['Detail']['data'],
-                $entry['DetailType'],
-                $entry['Source'],
-                $entry['EventBusName'],
-            );
-        });
-    }
+                // What's left in the payload is just the model.
+                $model = Arr::first($payload);
 
-    protected function mapToEventBridgeEntries(array $channels, string $event, array $payload): Collection
-    {
-        // Remove the socket from the payload if it's there.
-        Arr::forget($payload, 'socket');
+                $data = $this->transformEventData($event, $model);
 
-        // What's left in the payload is just the model.
-        $model = Arr::first($payload);
+                $metadata = $this->getEventMetadata($event);
 
-        // @todo dot separate studly cased event name
-
-        return collect($channels)
-            ->map(function ($channel) use ($event, $model) {
-                return $this->mapToEventBridgeEntry($channel, $event, $model);
+                app($this->client)->putEvent(
+                    $data,
+                    $metadata,
+                    $event,
+                    $this->source ?? '',
+                    $channel,
+                );
             });
-    }
-
-    protected function mapToEventBridgeEntry($channel, string $event, $model): array
-    {
-        $eventDetail = [
-            'data' => $this->transformEventData($event, $model),
-            'metadata' => $this->getEventMetadata($event),
-        ];
-
-        return [
-            'Detail' => $eventDetail,
-            'DetailType' => $event,
-            'Source' => $this->source ?? '',
-            'EventBusName' => $channel,
-        ];
     }
 
     /**
@@ -107,19 +84,11 @@ class CustomEventBroadcaster extends Broadcaster
      * @todo add resource defined in model itself
      * @todo test with multi word model and event names
      */
-    protected function transformEventData(string $eventName, Model $model)
+    protected function transformEventData(string $eventName, Model $model): array
     {
-        $eventResource = 'App\Events\Resources\\'.Str::studly(Str::of($eventName)->explode('.')->implode('_')).'EventResource';
+        $eventResource = $this->getEventResource($eventName, $model);
 
-        if (class_exists($eventResource)) {
-            $data = new $eventResource($model);
-
-            return $data->toArray(null);
-        }
-
-        $eventResource = 'App\Events\Resources\\'.class_basename($model).'EventResource';
-
-        if (class_exists($eventResource)) {
+        if ($eventResource) {
             $data = new $eventResource($model);
 
             return $data->toArray(null);
@@ -149,8 +118,34 @@ class CustomEventBroadcaster extends Broadcaster
         return $metadata;
     }
 
-//    protected function getEventResource()
+    /**
+     * @todo take into account that the broadcastAs can not be set in the event class.
+     */
+    protected function getEventResource(string $eventName, Model $model): ?string
+    {
+        $eventResourceClasses = [
+            'App\Events\Resources\\'.Str::studly(Str::of($eventName)->explode('.')->implode('_')).'EventResource',
+            'App\Events\Resources\\'.class_basename($model).'EventResource',
+        ];
+
+        foreach ($eventResourceClasses as $eventResourceClass) {
+            if (class_exists($eventResourceClass)) {
+                return $eventResourceClass;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @todo when broadcast as is set in the event class, use that. Otherwise transform the event name.
+     */
+//    protected function getEventName(string $event): string
 //    {
+//        $eventClassName = Str::of($event)->explode('\\')->last();
 //
+//        return (string) Str::of($eventClassName)
+//            ->snake()
+//            ->replace('_', '.');
 //    }
 }
