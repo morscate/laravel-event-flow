@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
  */
 class CustomEventBroadcaster extends Broadcaster
 {
-    protected $client;
+    protected mixed $client;
 
     protected ?string $source;
 
