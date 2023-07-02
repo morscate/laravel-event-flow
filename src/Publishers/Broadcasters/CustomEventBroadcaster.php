@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Morscate\LaravelEventFlow\Publishers\Broadcasters;
 
-use App\Services\EventBridge\EventIngressClient;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -23,7 +22,7 @@ class CustomEventBroadcaster extends Broadcaster
 
     public function __construct()
     {
-        $this->client = config('event-flow.client') ?? EventIngressClient::class;
+        $this->client = config('event-flow.client');
 
         $this->source = config('event-flow.event_source');
 

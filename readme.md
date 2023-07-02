@@ -6,6 +6,12 @@ Event flow
 - PHP >= 8.0
 - Laravel >= 9.0
 
+## Publish config
+If you need to publish the config file, you can do so by running the following command:
+```
+php artisan vendor:publish --tag=event-flow-config
+```
+
 ## Webhooks
 You 
 ```
