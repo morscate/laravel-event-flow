@@ -1,5 +1,5 @@
 # Event Flow
-The is a BETA of the Event flow package. Do not use this is production!
+This is an ALPHA version of the Event flow package. Do not use this is production!
 
 ## Requirements
 
