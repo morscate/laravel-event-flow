@@ -1,5 +1,5 @@
 # Event Flow
-Event flow
+The is a BETA of the Event flow package.
 
 ## Requirements
 
