@@ -1,7 +1,7 @@
 {
     "name": "morscate/laravel-event-flow",
     "description": "Event Flow helps you to create event driven applications with Laravel",
-    "keywords": ["laravel", "event", "event driven", "event bridge", "pub/sub", "publisher", "subscriber", "eventflow"],
+    "keywords": ["laravel", "event", "event driven", "event bridge", "pub-sub", "publisher", "subscriber", "eventflow"],
     "type": "library",
     "require": {
         "php": "^8.0",
