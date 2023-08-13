@@ -6,4 +6,6 @@ return [
     'event_source' => env('EVENTFLOW_EVENT_SOURCE'),
 
     'event_domain' => env('EVENTFLOW_EVENT_DOMAIN'),
+
+    'queue_connection' => env('EVENTFLOW_QUEUE_CONNECTION', 'event-flow'),
 ];
