@@ -10,8 +10,8 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Morscate\LaravelEventFlow\Publishers\Broadcasters\CustomEventBroadcaster;
 use Morscate\LaravelEventFlow\Publishers\Broadcasters\EventBridgeBroadcaster;
-use Morscate\LaravelEventFlow\Subscribers\Handlers\SqsSnsHandler;
-use Morscate\LaravelEventFlow\Subscribers\Queue\Connectors\SqsSnsConnector;
+use Morscate\LaravelEventFlow\Subscribers\Handlers\SqsEventsHandler;
+use Morscate\LaravelEventFlow\Subscribers\Queue\Connectors\SqsEventsConnector;
 
 class EventFlowServiceProvider extends ServiceProvider
 {
@@ -26,7 +26,7 @@ class EventFlowServiceProvider extends ServiceProvider
     public function register(): void
     {
         // @todo add config to determine if it will run on Lambda or we can just use the SqsSnsQueue
-        $this->app->when(SqsSnsHandler::class)
+        $this->app->when(SqsEventsHandler::class)
             ->needs('$connection')
             ->giveConfig('queue.default');
 
@@ -34,7 +34,7 @@ class EventFlowServiceProvider extends ServiceProvider
 
         $this->offerPublishing();
 
-//        $this->registerSqsSnsQueueConnector();
+        $this->registerSqsEventsQueueConnector();
 
         $this->registerEventBridgeBroadcaster();
 
@@ -64,11 +64,11 @@ class EventFlowServiceProvider extends ServiceProvider
     /**
      * Register the SQS SNS connector for the Queue components.
      */
-    protected function registerSqsSnsQueueConnector(): void
+    protected function registerSqsEventsQueueConnector(): void
     {
         $this->app->resolving('queue', function (QueueManager $manager) {
-            $manager->extend('sqs-sns', function () {
-                return new SqsSnsConnector;
+            $manager->extend('sqs-events', function () {
+                return new SqsEventsConnector;
             });
         });
     }

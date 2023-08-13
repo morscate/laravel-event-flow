@@ -23,7 +23,7 @@ use RuntimeException;
 /**
  * Handles SQS events.
  */
-class SqsSnsHandler extends SqsHandler
+class SqsEventsHandler extends SqsHandler
 {
     /**
      * The AWS SQS client.
@@ -51,14 +51,10 @@ class SqsSnsHandler extends SqsHandler
         protected Container $container,
         protected Dispatcher $events,
         protected ExceptionHandler $exceptions,
-        protected string $connection = 'sqs',
+        protected string $connection = 'sqs-events',
     ) {
         $queue = $container->make(QueueManager::class)
             ->connection($connection);
-
-        if (! $queue instanceof SqsQueue) {
-            throw new RuntimeException('Default queue connection is not a SQS connection');
-        }
 
         $this->queueName = $queue->getQueue(null);
         $this->sqs = $queue->getSqs();

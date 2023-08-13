@@ -20,8 +20,6 @@ class CustomEventBroadcaster extends Broadcaster
 
     protected ?string $domain;
 
-    protected ?string $eventResource = null;
-
     public function __construct()
     {
         $this->client = config('event-flow.client');
@@ -52,20 +50,18 @@ class CustomEventBroadcaster extends Broadcaster
      */
     public function broadcast(array $channels, $event, array $payload = [])
     {
-        // Remove the socket from the payload if it's there.
-        Arr::forget($payload, 'socket');
-
-        // What's left in the payload is just the model.
-        $model = Arr::first($payload);
-
-        $this->eventResource = $this->getEventResource($event, $model);
-
-        $data = $this->transformEventData($model);
-
-        $metadata = $this->getEventMetadata($event);
-
         collect($channels)
-            ->each(function ($channel) use ($event, $payload, $data, $metadata) {
+            ->each(function ($channel) use ($event, $payload) {
+                // Remove the socket from the payload if it's there.
+                Arr::forget($payload, 'socket');
+
+                // What's left in the payload is just the model.
+                $model = Arr::first($payload);
+
+                $data = $this->transformEventData($event, $model);
+
+                $metadata = $this->getEventMetadata($event);
+
                 app($this->client)->putEvent(
                     $data,
                     $metadata,
@@ -78,11 +74,21 @@ class CustomEventBroadcaster extends Broadcaster
 
     /**
      * Transform the model for the event.
+     *
+     * 1. A resource named by event name, e.g. OrderCreatedEventResource.
+     * 2. A resource named by model name, e.g. OrderEventResource.
+     * 3. The model itself.
+     *
+     * @todo add resource defined in event
+     * @todo add resource defined in model itself
+     * @todo test with multi word model and event names
      */
-    protected function transformEventData(Model $model): array
+    protected function transformEventData(string $eventName, Model $model): array
     {
-        if ($this->eventResource) {
-            $data = new $this->eventResource($model);
+        $eventResource = $this->getEventResource($eventName, $model);
+
+        if ($eventResource) {
+            $data = new $eventResource($model);
 
             return $data->toArray(null);
         }
@@ -108,25 +114,11 @@ class CustomEventBroadcaster extends Broadcaster
             $metadata['domain'] = $this->domain;
         }
 
-        if ($this->eventResource::EVENT_VERSION) {
-            $metadata['version'] = $this->eventResource::EVENT_VERSION;
-        }
-
         return $metadata;
     }
 
     /**
-     * Get the event resource.
-     *
-     * 1. A resource named by event name, e.g. OrderCreatedEventResource.
-     * 2. A resource named by model name, e.g. OrderEventResource.
-     * 3. The model itself.
-     *
-     * @note take into account that the broadcastAs can not be set in the event class.
-     *
-     * @todo add resource defined in event
-     * @todo add resource defined in model itself
-     * @todo test with multi word model and event names
+     * @todo take into account that the broadcastAs can not be set in the event class.
      */
     protected function getEventResource(string $eventName, Model $model): ?string
     {
@@ -143,4 +135,16 @@ class CustomEventBroadcaster extends Broadcaster
 
         return null;
     }
+
+    /**
+     * @todo when broadcast as is set in the event class, use that. Otherwise transform the event name.
+     */
+//    protected function getEventName(string $event): string
+//    {
+//        $eventClassName = Str::of($event)->explode('\\')->last();
+//
+//        return (string) Str::of($eventClassName)
+//            ->snake()
+//            ->replace('_', '.');
+//    }
 }
