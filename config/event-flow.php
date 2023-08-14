@@ -7,5 +7,5 @@ return [
 
     'event_domain' => env('EVENTFLOW_EVENT_DOMAIN'),
 
-    'queue_connection' => env('EVENTFLOW_QUEUE_CONNECTION', 'event-flow'),
+    'queue' => env('EVENTFLOW_QUEUE_CONNECTION', 'event-flow'),
 ];

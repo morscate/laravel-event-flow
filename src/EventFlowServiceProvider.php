@@ -28,7 +28,7 @@ class EventFlowServiceProvider extends ServiceProvider
         // @todo add config to determine if it will run on Lambda or we can just use the SqsSnsQueue
         $this->app->when(SqsEventsHandler::class)
             ->needs('$connection')
-            ->giveConfig('queue.default');
+            ->giveConfig('event-flow.queue');
 
         $this->configure();
 

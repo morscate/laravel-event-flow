@@ -23,7 +23,7 @@ class SqsEventsConnector extends SqsConnector
 
         return new SqsEventsQueue(
             new SqsClient(EventFlowServiceProvider::prepareConfigurationCredentials($config)),
-            $config['queue'],
+            config('event-flow.queue'),
             Arr::get($config, 'prefix', ''),
             Arr::get($config, 'suffix', ''),
         );
