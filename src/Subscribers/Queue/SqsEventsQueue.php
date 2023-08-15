@@ -53,10 +53,23 @@ class SqsEventsQueue extends SqsQueue
             return new SnsEventDispatcherJob(
                 $this->container,
                 $this->sqs,
-                $response['Messages'][0],
+                $this->transformJobPayload($job),
                 $this->connectionName,
                 $queue
             );
         }
+    }
+
+    /**
+     * Make events compatible with Laravel's SQS queue driver
+     */
+    private function transformJobPayload($payload)
+    {
+        $body = json_decode($payload['Body'], true);
+        $body['uuid'] = $job['MessageId'];
+
+        $payload['Body'] = json_encode($body);
+
+        return $payload;
     }
 }
