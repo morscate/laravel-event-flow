@@ -53,7 +53,7 @@ class SqsEventsQueue extends SqsQueue
             return new SnsEventDispatcherJob(
                 $this->container,
                 $this->sqs,
-                $this->transformJobPayload($job),
+                $this->transformJobPayload($response['Messages'][0]),
                 $this->connectionName,
                 $queue
             );
@@ -66,7 +66,7 @@ class SqsEventsQueue extends SqsQueue
     private function transformJobPayload($payload)
     {
         $body = json_decode($payload['Body'], true);
-        $body['uuid'] = $job['MessageId'];
+        $body['uuid'] = $body['MessageId'];
 
         $payload['Body'] = json_encode($body);
 
