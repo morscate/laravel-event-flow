@@ -34,13 +34,19 @@ class SnsEventDispatcherJob extends SqsJob implements JobContract
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function failed($e)
-    {
-        // ...
-    }
+//    /**
+//     * {@inheritDoc}
+//     */
+//    protected function failed($e)
+//    {
+//        $payload = $this->payload();
+//
+//        [$class, $method] = JobName::parse($payload['job']);
+//
+//        if (method_exists($this->instance = $this->resolve($class), 'failed')) {
+//            $this->instance->failed($payload['data'], $e, $payload['uuid'] ?? '');
+//        }
+//    }
 
     /**
      * {@inheritDoc}
