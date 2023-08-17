@@ -53,8 +53,10 @@ class SqsEventsHandler extends SqsHandler
         protected ExceptionHandler $exceptions,
         protected string $connection = 'sqs-events',
     ) {
+        \Sentry\captureMessage('Handler construct');
+
         $queue = $container->make(QueueManager::class)
-            ->connection($connection);
+            ->connection('sqs-events');
 
         $this->queueName = $queue->getQueue(null);
         $this->sqs = $queue->getSqs();
@@ -65,6 +67,8 @@ class SqsEventsHandler extends SqsHandler
      */
     public function handleSqs(SqsEvent $event, Context $context): void
     {
+        \Sentry\captureMessage('Handler handleSqs');
+
         $worker = $this->container->makeWith(Worker::class, [
             'isDownForMaintenance' => fn () => MaintenanceMode::active(),
         ]);
@@ -89,6 +93,8 @@ class SqsEventsHandler extends SqsHandler
      */
     protected function marshalJob(SqsRecord $sqsRecord): SnsEventDispatcherJob
     {
+        \Sentry\captureMessage('Handler marshalJob' . json_encode($sqsRecord));
+
         $message = [
             'MessageId' => $sqsRecord->getMessageId(),
             'ReceiptHandle' => $sqsRecord->getReceiptHandle(),
@@ -96,6 +102,8 @@ class SqsEventsHandler extends SqsHandler
             'Attributes' => $sqsRecord->toArray()['attributes'],
             'MessageAttributes' => $sqsRecord->getMessageAttributes(),
         ];
+
+        \Sentry\captureMessage('Handler marshalJob' . json_encode($message));
 
         return new SnsEventDispatcherJob(
             $this->container,
