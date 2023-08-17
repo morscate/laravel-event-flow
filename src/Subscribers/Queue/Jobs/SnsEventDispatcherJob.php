@@ -16,8 +16,6 @@ class SnsEventDispatcherJob extends SqsJob implements JobContract
      */
     public function fire()
     {
-        \Sentry\captureMessage('Dispatcher before raw check');
-
         if ($this->isRawPayload()) {
             if ($this->container->bound('log')) {
                 Log::error('SqsEventsQueue: Invalid SNS payload. '.
@@ -28,7 +26,7 @@ class SnsEventDispatcherJob extends SqsJob implements JobContract
             return;
         }
 
-            \Sentry\captureMessage('Dispatcher after raw check' . json_encode($this->snsMessage()) . json_encode($this->snsSubject()));
+            \Sentry\captureMessage('Dispatcher after raw check' . json_encode($this->snsMessage()) . json_encode($this->resolveName()));
 
         if ($eventName = $this->resolveName()) {
             $this->resolve(Dispatcher::class)->dispatch($eventName, [

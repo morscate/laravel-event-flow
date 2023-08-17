@@ -49,8 +49,6 @@ class SqsEventsQueue extends SqsQueue
             'AttributeNames' => ['ApproximateReceiveCount'],
         ]);
 
-        \Sentry\captureMessage('Queue pop' . json_encode($response));
-
         if (! is_null($response['Messages']) && count($response['Messages']) > 0) {
             return new SnsEventDispatcherJob(
                 $this->container,
