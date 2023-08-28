@@ -6,6 +6,7 @@ namespace Morscate\LaravelEventFlow\Publishers\Broadcasters;
 
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
@@ -19,6 +20,8 @@ class CustomEventBroadcaster extends Broadcaster
     protected ?string $source;
 
     protected ?string $domain;
+
+    protected ?JsonResource $resource = null;
 
     public function __construct()
     {
@@ -50,18 +53,20 @@ class CustomEventBroadcaster extends Broadcaster
      */
     public function broadcast(array $channels, $event, array $payload = [])
     {
+        // Remove the socket from the payload if it's there.
+        Arr::forget($payload, 'socket');
+
+        // What's left in the payload is just the model.
+        $model = Arr::first($payload);
+
+        $this->setEventResource($event, $model);
+
+        $data = $this->transformEventData($event, $model);
+
+        $metadata = $this->getEventMetadata($event);
+
         collect($channels)
-            ->each(function ($channel) use ($event, $payload) {
-                // Remove the socket from the payload if it's there.
-                Arr::forget($payload, 'socket');
-
-                // What's left in the payload is just the model.
-                $model = Arr::first($payload);
-
-                $data = $this->transformEventData($event, $model);
-
-                $metadata = $this->getEventMetadata($event);
-
+            ->each(function ($channel) use ($event, $data, $metadata) {
                 app($this->client)->putEvent(
                     $data,
                     $metadata,
@@ -85,12 +90,8 @@ class CustomEventBroadcaster extends Broadcaster
      */
     protected function transformEventData(string $eventName, Model $model): array
     {
-        $eventResource = $this->getEventResource($eventName, $model);
-
-        if ($eventResource) {
-            $data = new $eventResource($model);
-
-            return $data->toArray(null);
+        if ($this->resource) {
+            return $this->resource->toArray(null);
         }
 
         return $model->toArray();
@@ -106,6 +107,10 @@ class CustomEventBroadcaster extends Broadcaster
             'status' => $eventType->last(),
         ];
 
+        if ($this->resource->version) {
+            $metadata['version'] = $this->resource->version;
+        }
+
         if ($this->source) {
             $metadata['service'] = $this->source;
         }
@@ -115,6 +120,15 @@ class CustomEventBroadcaster extends Broadcaster
         }
 
         return $metadata;
+    }
+
+    protected function setEventResource($eventName, $model)
+    {
+        $eventResource = $this->getEventResource($eventName, $model);
+
+        if ($eventResource) {
+            $this->resource = new $eventResource($model);
+        }
     }
 
     /**
