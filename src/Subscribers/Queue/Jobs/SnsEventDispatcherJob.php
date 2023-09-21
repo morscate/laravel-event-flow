@@ -26,8 +26,6 @@ class SnsEventDispatcherJob extends SqsJob implements JobContract
             return;
         }
 
-            \Sentry\captureMessage('Dispatcher after raw check' . json_encode($this->snsMessage()) . json_encode($this->resolveName()));
-
         if ($eventName = $this->resolveName()) {
             $this->resolve(Dispatcher::class)->dispatch($eventName, [
                 'payload' => json_decode($this->snsMessage(), true),
