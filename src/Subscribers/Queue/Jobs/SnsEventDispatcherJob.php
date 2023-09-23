@@ -7,6 +7,7 @@ namespace Morscate\LaravelEventFlow\Subscribers\Queue\Jobs;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Queue\Job as JobContract;
 use Illuminate\Queue\Jobs\SqsJob;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
 class SnsEventDispatcherJob extends SqsJob implements JobContract
@@ -32,6 +33,16 @@ class SnsEventDispatcherJob extends SqsJob implements JobContract
                 'subject' => $this->snsSubject(),
             ]);
         }
+    }
+
+    public function getCorrelationId(): ?string
+    {
+        return Arr::get($this->decodedSnsMessage(), 'detail.metadata.correlation_id');
+    }
+
+    public function decodedSnsMessage(): array
+    {
+        return json_decode($this->snsMessage(), true);
     }
 
     /**
