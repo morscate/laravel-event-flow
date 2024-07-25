@@ -20,6 +20,8 @@ class CustomEventBroadcaster extends Broadcaster
 
     protected ?string $domain;
 
+    protected ?string $version = '1';
+
     public function __construct()
     {
         $this->client = config('event-flow.client');
@@ -60,7 +62,7 @@ class CustomEventBroadcaster extends Broadcaster
 
                 $data = $this->transformEventData($event, $model);
 
-                $metadata = $this->getEventMetadata($event);
+                $metadata = $this->getEventMetadata($event, $data);
 
                 app($this->client)->putEvent(
                     $data,
@@ -90,13 +92,17 @@ class CustomEventBroadcaster extends Broadcaster
         if ($eventResource) {
             $data = new $eventResource($model);
 
+            if ($data->version) {
+                $this->version = $data->version;
+            }
+
             return $data->toArray(null);
         }
 
         return $model->toArray();
     }
 
-    protected function getEventMetadata(string $eventName): array
+    protected function getEventMetadata(string $eventName, array $data = []): array
     {
         $eventType = Str::of($eventName)->explode('.');
 
@@ -105,6 +111,10 @@ class CustomEventBroadcaster extends Broadcaster
             'type' => $eventType->first(),
             'status' => $eventType->last(),
         ];
+
+        if ($this->version) {
+            $metadata['version'] = $this->version;
+        }
 
         if ($this->source) {
             $metadata['service'] = $this->source;
@@ -139,12 +149,12 @@ class CustomEventBroadcaster extends Broadcaster
     /**
      * @todo when broadcast as is set in the event class, use that. Otherwise transform the event name.
      */
-//    protected function getEventName(string $event): string
-//    {
-//        $eventClassName = Str::of($event)->explode('\\')->last();
-//
-//        return (string) Str::of($eventClassName)
-//            ->snake()
-//            ->replace('_', '.');
-//    }
+    //    protected function getEventName(string $event): string
+    //    {
+    //        $eventClassName = Str::of($event)->explode('\\')->last();
+    //
+    //        return (string) Str::of($eventClassName)
+    //            ->snake()
+    //            ->replace('_', '.');
+    //    }
 }
