@@ -3,8 +3,8 @@ This is an ALPHA version of the Event flow package. Do not use this is productio
 
 ## Requirements
 
-- PHP >= 8.0
-- Laravel >= 9.0
+- PHP >= 8.2
+- Laravel >= 11.0
 
 ## Publish config
 If you need to publish the config file, you can do so by running the following command:
